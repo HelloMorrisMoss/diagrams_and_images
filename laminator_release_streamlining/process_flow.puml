@@ -1,4 +1,5 @@
 @startuml
+hide empty methods
 allowmixing
 'https://plantuml.com/sequence-diagram
 
@@ -8,83 +9,74 @@ BackgroundColor LightBlue
 ArrowColor SeaGreen
 BorderColor DarkBLue
 }
+skinparam packageStyle frame
 
+title "<u>Process Flow for Laminator Report Generation"
+
+' group the packages to push them toward being lined up
 together {
-    package material_defect_system {
+    package material_defect_system #LightBlue {
         class material_defect_hmi {
-            + popup
-            ..
+            + show_popup
+            + popup_interaction
             }
         class ignition_scada {
             + input
-            ..
             + output
         }
         class defect_database {
             + input
-            ..
             + output
         }
-        class mahlo_scanner
+        class mahlo_scanner {
+            measures thickness
+        }
     }
 
-    package original {
+    package original #ffc45e {
         class work_order {
-            number = 123456
-            quantity = 3
-            date = 2021-09-24
+            order details
         }
 
-        class mahlo_report {
-            lot = 54321
-            length = 75
-            }
-
-        class operator {
-            + input
-            ..
-            + output
-        }
-        class mahlo_hmi {
-            + input
-            ..
-            + output
-        }
+        class mahlo_report
+        class operator
+        class mahlo_hmi
 
         class pdf_reports
     }
-    package report_automation {
-        class table_extractor
-        class renamer {
-        + input
-        ..
-        + output
+    package report_automation #89b74b {
+        class table_extractor {
+            extract data from pdf tables
         }
+        class renamer
         class excel_reports {
-        + input
-        ..
-        + output
+            Include PDF data, removal records,\nand SCADA tag history.
         }
     }
 }
 
 ' define the defect popups
-mahlo_scanner "defect_detected" --> ignition_scada::input
-ignition_scada::output --|> defect_database::input : "defect data"
-ignition_scada::output --|> material_defect_hmi::popup : "lam stopped"
-material_defect_hmi::popup  <|-up-|> operator : confirm\nremoved
-defect_database::output <|--|> material_defect_hmi::popup : update defect\ndata
-material_defect_hmi "update defect\n data" --|> defect_database::input
+mahlo_scanner -[#BLue]> ignition_scada::input : "defect detected"
+ignition_scada::output -[#BLue]|> defect_database::input
+ignition_scada::output -[#BLue]|> material_defect_hmi::show_popup : "lam stopped"
+material_defect_hmi::popup_interaction  <|-up[#BLue]-|> "confirm\nremoved" operator
+defect_database <|-[#BLue]-|> material_defect_hmi::popup_interaction : update defect\ndata
+'material_defect_hmi "update defect\n data" -[#BLue]-|> defect_database::input
 
 '' the renaming and excel reports process
-renamer <|-down---|> "rename" pdf_reports
-renamer --|> table_extractor : "renamed\nlist"
-table_extractor --|> excel_reports
+renamer <|-down[#Red]-|> "rename" pdf_reports
+renamer -[#Red]|> table_extractor : "renamed\nlist"
+table_extractor -[#Red]|> excel_reports
+defect_database -[#Red]|> "include removal\ndata" table_extractor
+ignition_scada "relevant tag\nhistory data" -[#Red]|> table_extractor
 
+' d78048
 ' the original process to generate mahlo reports
-work_order --> operator::input
-operator --> mahlo_hmi
-mahlo_hmi --> mahlo_report
-mahlo_report --> pdf_reports
+work_order -[#d78048]> operator::input
+operator::output -[#d78048]> mahlo_hmi::input
+mahlo_hmi -[#d78048]> mahlo_report
+mahlo_report -[#d78048]> pdf_reports
+
+
 
 @enduml
