@@ -1,0 +1,90 @@
+@startuml
+allowmixing
+'https://plantuml.com/sequence-diagram
+
+' change the default colors for the classes
+skinparam class {
+BackgroundColor LightBlue
+ArrowColor SeaGreen
+BorderColor DarkBLue
+}
+
+together {
+    package material_defect_system {
+        class material_defect_hmi {
+            + popup
+            ..
+            }
+        class ignition_scada {
+            + input
+            ..
+            + output
+        }
+        class defect_database {
+            + input
+            ..
+            + output
+        }
+        class mahlo_scanner
+    }
+
+    package original {
+        class work_order {
+            number = 123456
+            quantity = 3
+            date = 2021-09-24
+        }
+
+        class mahlo_report {
+            lot = 54321
+            length = 75
+            }
+
+        class operator {
+            + input
+            ..
+            + output
+        }
+        class mahlo_hmi {
+            + input
+            ..
+            + output
+        }
+
+        class pdf_reports
+    }
+    package report_automation {
+        class table_extractor
+        class renamer {
+        + input
+        ..
+        + output
+        }
+        class excel_reports {
+        + input
+        ..
+        + output
+        }
+    }
+}
+
+' define the defect popups
+mahlo_scanner "defect_detected" --> ignition_scada::input
+ignition_scada::output --|> defect_database::input : "defect data"
+ignition_scada::output --|> material_defect_hmi::popup : "lam stopped"
+material_defect_hmi::popup  <|-up-|> operator : confirm\nremoved
+defect_database::output <|--|> material_defect_hmi::popup : update defect\ndata
+material_defect_hmi "update defect\n data" --|> defect_database::input
+
+'' the renaming and excel reports process
+renamer <|-down---|> "rename" pdf_reports
+renamer --|> table_extractor : "renamed\nlist"
+table_extractor --|> excel_reports
+
+' the original process to generate mahlo reports
+work_order --> operator::input
+operator --> mahlo_hmi
+mahlo_hmi --> mahlo_report
+mahlo_report --> pdf_reports
+
+@enduml
